@@ -1,0 +1,25 @@
+const CACHE = 'orchestrator-v1';
+const ASSETS = [
+  '/',
+  '/index.html',
+  '/manifest.webmanifest'
+];
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE).then(cache => cache.addAll(ASSETS))
+  );
+});
+self.addEventListener('activate', event => {
+  event.waitUntil(self.clients.claim());
+});
+self.addEventListener('fetch', event => {
+  const { request } = event;
+  if (request.method !== 'GET') return;
+  event.respondWith(
+    caches.match(request).then(cached => cached || fetch(request).then(resp => {
+      const copy = resp.clone();
+      caches.open(CACHE).then(cache => cache.put(request, copy));
+      return resp;
+    }).catch(()=> cached))
+  );
+});
